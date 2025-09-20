@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\HrExportController;
 use App\Http\Controllers\ReportExportController;
+use App\Http\Controllers\QC\QcImportController;
+use App\Http\Controllers\QC\QcInspectionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -15,19 +17,26 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::prefix('admin')
-->middleware(['web','auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-	Route::get('/jobs/input', [JobController::class, 'create'])->name('jobs.input');
-	Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
-	Route::get('/admin/hr-scorecard/export', [HrExportController::class, 'scorecard'])
-        ->name('hr.scorecard.export');
-	Route::get('/admin/reports/operator-scorecard.csv', [ReportExportController::class, 'operatorScorecardCsv'])
-        ->name('reports.operator-scorecard.csv');
+    ->middleware(['web', 'auth'])->group(function () {
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+        Route::get('/jobs/input', [JobController::class, 'create'])->name('jobs.input');
+        Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
+        Route::get('/admin/hr-scorecard/export', [HrExportController::class, 'scorecard'])
+            ->name('hr.scorecard.export');
+        Route::get('/admin/reports/operator-scorecard.csv', [ReportExportController::class, 'operatorScorecardCsv'])
+            ->name('reports.operator-scorecard.csv');
 
-     Route::get('/admin/reports/operator-scorecard.xlsx', [ReportExportController::class, 'operatorScorecardXlsx'])
-        ->name('reports.operator-scorecard.xlsx');
+        Route::get('/admin/reports/operator-scorecard.xlsx', [ReportExportController::class, 'operatorScorecardXlsx'])
+            ->name('reports.operator-scorecard.xlsx');
+    });
+
+Route::prefix('admin/qc')->name('qc.')->group(function () {
+    Route::get('/', [QcInspectionController::class, 'index'])->name('inspections.index');
+    Route::get('/import', [QcImportController::class, 'create'])->name('import.create');
+    Route::post('/import', [QcImportController::class, 'store'])->name('import.store');
+    Route::post('/issues', [QcInspectionController::class, 'storeIssue'])->name('issues.store');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
