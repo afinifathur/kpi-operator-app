@@ -13,3 +13,5 @@ public/build/
 !/storage/framework/sessions
 !/storage/framework/views
 /storage/logs/*
+!/.vscode/tasks.json
+!/.vscode/tasks.json
