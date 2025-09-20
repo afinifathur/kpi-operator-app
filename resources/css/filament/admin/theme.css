@@ -1,0 +1,258 @@
+/* === Fonts sebelum Tailwind === */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========== TOKENS DASAR ========== */
+:root {
+  --radius: 12px;
+  --ring: 2px;
+
+  /* Light palette */
+  --bg:        255 255 255;
+  --bg-muted:  247 248 250;
+  --card:      255 255 255;
+  --border:    229 231 235;
+  --text:      23 23 23;
+  --text-muted:107 114 128;
+
+  /* Brand (indigo) */
+  --primary-50:  238 242 255;
+  --primary-100: 224 231 255;
+  --primary-500: 99 102 241;
+  --primary-600: 79 70 229;
+  --primary-700: 67 56 202;
+}
+
+html {
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  @apply antialiased;
+  background: rgb(var(--bg));
+  color: rgb(var(--text));
+}
+
+/* ========== BRAND DI SIDEBAR (SATU SUMBER KEBENARAN) ========== */
+/* jangan potong area brand */
+.fi-sidebar-header { overflow: visible !important; }
+
+/* anchor/logo apapun di header */
+.fi-sidebar-header a:has(img),
+.fi-sidebar-header a:has(svg) {
+  display: flex !important;
+  align-items: center;
+  gap: .5rem;
+  max-width: none !important;
+  overflow: visible !important;
+}
+
+/* ukuran logo */
+.fi-sidebar-header img,
+.fi-sidebar-header svg {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  flex: 0 0 auto;
+  border-radius: 9999px;
+}
+
+/* sisipkan teks brand satu kali saja */
+.fi-sidebar-header a:has(img)::after,
+.fi-sidebar-header a:has(svg)::after {
+  content: "PERONI KARYA SENTRA\A Manufacturing Report"; /* \A = baris baru */
+  white-space: pre-line;
+  display: block;
+  font-weight: 700;
+  line-height: 1.1;
+  font-size: .9rem;
+  color: #3d3c3c;
+}
+
+/* sembunyikan kalau sidebar collapse */
+.fi-sidebar-collapsed .fi-sidebar-header a:has(img)::after,
+.fi-sidebar-collapsed .fi-sidebar-header a:has(svg)::after {
+  display: none !important;
+  content: "";
+}
+
+/* (opsional) warna ketika dark mode aktif suatu saat */
+.dark .fi-sidebar-header a:has(img)::after,
+.dark .fi-sidebar-header a:has(svg)::after {
+  color: #f3f4f6;
+}
+
+/* ========== LAYOUT POLISH ========== */
+.fi-topbar {
+  @apply shadow-sm;
+  background: rgb(var(--bg));
+  border-bottom: 1px solid rgb(var(--border));
+}
+
+.fi-sidebar {
+  background: rgb(var(--bg));
+  border-right: 1px solid rgb(var(--border));
+}
+
+.fi-main { background: rgb(var(--bg-muted)); }
+
+/* ========== CARD / SECTION / WIDGET ========== */
+.fi-section, .fi-card, .fi-widget {
+  @apply shadow-sm;
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius);
+}
+.fi-section-header, .fi-card-header {
+  @apply border-b;
+  border-color: rgb(var(--border));
+}
+
+/* =============== BUTTONS (solid biru + teks/ikon putih) =============== */
+
+/* Base */
+.fi-btn { 
+  @apply rounded-xl font-medium transition;
+  border: 1px solid transparent;
+}
+
+/* --- Target tombol di mana pun (header page, header table, modal) --- */
+.fi-header .fi-actions .fi-btn,
+.fi-ta-header .fi-actions .fi-btn,
+.fi-modal-header .fi-actions .fi-btn,
+.fi-ac-action .fi-btn,
+/* fallback umum: tombol yang secara eksplisit di-set primary */
+.fi-btn[data-color="primary"]:not([data-style="link"]):not([data-style="outlined"]):not([data-style="ghost"]) {
+  background-color: rgb(var(--primary-600)) !important;
+  border-color: rgb(var(--primary-600)) !important;
+  color: #fff !important;
+}
+
+/* Hover */
+.fi-header .fi-actions .fi-btn:hover,
+.fi-ta-header .fi-actions .fi-btn:hover,
+.fi-modal-header .fi-actions .fi-btn:hover,
+.fi-ac-action .fi-btn:hover,
+.fi-btn[data-color="primary"]:hover:not([data-style="link"]):not([data-style="outlined"]):not([data-style="ghost"]) {
+  background-color: rgb(var(--primary-700)) !important;
+  border-color: rgb(var(--primary-700)) !important;
+}
+
+/* Label & ikon di dalam tombol harus putih */
+.fi-btn .fi-btn-label,
+.fi-btn svg,
+.fi-btn [data-slot="icon"] svg {
+  color: #fff !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Variasi gray/secondary tetap jelas di background terang */
+.fi-btn[data-color="gray"]:not([data-style="link"]) {
+  background-color: #fff !important;
+  color: rgb(55 65 81) !important;      /* gray-700 */
+  border: 1px solid rgb(var(--border)) !important;
+}
+.fi-btn[data-color="gray"]:hover:not([data-style="link"]) {
+  background-color: rgb(var(--bg-muted)) !important;
+}
+
+/* Fokus ring */
+.fi-btn:focus-visible {
+  box-shadow: 0 0 0 var(--ring) rgba(var(--primary-500) / .35) !important;
+  outline: none;
+}
+
+
+/* ========== INPUTS ========== */
+.fi-input, .fi-select, .fi-textarea, .fi-rich-editor {
+  @apply rounded-xl border;
+  border-color: rgb(var(--border));
+  background: rgb(var(--bg));
+}
+.fi-input:focus, .fi-select:focus, .fi-textarea:focus, .fi-rich-editor:focus {
+  outline: none;
+  box-shadow: 0 0 0 var(--ring) rgba(var(--primary-500) / .25);
+  border-color: rgb(var(--primary-500));
+}
+
+/* ========== TABLES ========== */
+.fi-ta-table {
+  @apply rounded-xl overflow-hidden;
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--card));
+}
+.fi-ta-table th {
+  @apply text-left text-xs font-semibold uppercase tracking-wide;
+  color: rgb(var(--text-muted));
+  background: rgb(var(--bg-muted));
+}
+.fi-ta-table th, .fi-ta-table td { @apply py-2.5 px-3; }
+.fi-ta-row:hover td { @apply bg-gray-50; }
+
+/* ========== BADGE & LINK ========== */
+.fi-badge { @apply rounded-full px-2.5 py-1 text-xs; }
+a, .fi-link { color: rgb(var(--primary-600)); }
+a:hover, .fi-link:hover { color: rgb(var(--primary-700)); }
+
+/* ========== TRANSITIONS HALUS ========== */
+* {
+  transition: background-color .15s ease, border-color .15s ease,
+              color .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+
+/* ========== OPTIONAL DARK TOKENS (tidak aktif jika panel force Light) ========== */
+.dark {
+  --bg:        18 18 20;
+  --bg-muted:  24 24 27;
+  --card:      28 28 32;
+  --border:    38 38 42;
+  --text:      244 244 245;
+  --text-muted:161 161 170;
+}
+.dark .fi-topbar, .dark .fi-sidebar { @apply shadow-none; }
+
+/* ===== Force solid primary buttons + white label/ikon ===== */
+
+/* Solid bg untuk primary (kecuali link/outlined/ghost) */
+.fi-btn[data-color="primary"]:not([data-style="link"]):not([data-style="outlined"]):not([data-style="ghost"]) {
+  background-color: rgb(var(--primary-600)) !important;
+  border-color: rgb(var(--primary-600)) !important;
+  color: #fff !important; /* fallback untuk komponen yang baca dari button langsung */
+}
+
+/* Hover state */
+.fi-btn[data-color="primary"]:hover:not([data-style="link"]):not([data-style="outlined"]):not([data-style="ghost"]) {
+  background-color: rgb(var(--primary-700)) !important;
+  border-color: rgb(var(--primary-700)) !important;
+}
+
+/* Pastikan label di dalam tombol ikut putih */
+.fi-btn[data-color="primary"] .fi-btn-label {
+  color: #fff !important;
+}
+
+/* Pastikan ikon SVG di dalam tombol ikut putih */
+.fi-btn[data-color="primary"] svg,
+.fi-btn[data-color="primary"] [data-slot="icon"] svg {
+  color: #fff !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Gray/secondary tetap terlihat di bg terang */
+.fi-btn[data-color="gray"]:not([data-style="link"]) {
+  background-color: #fff !important;
+  color: rgb(55 65 81) !important;               /* gray-700 */
+  border: 1px solid rgb(var(--border)) !important;
+}
+.fi-btn[data-color="gray"]:hover:not([data-style="link"]) {
+  background-color: rgb(var(--bg-muted)) !important;
+}
+
+/* Fokus ring */
+.fi-btn:focus-visible {
+  box-shadow: 0 0 0 var(--ring) rgba(var(--primary-500) / .35) !important;
+  outline: none;
+}

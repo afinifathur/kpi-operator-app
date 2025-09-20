@@ -1,0 +1,11 @@
+﻿{
+  "php.validate.executablePath": "C:\\laragon\\bin\\php\\php-8.3.16-Win32-vs16-x64\\php.exe",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.env.windows": {
+    "PATH": "C:\\Program Files\\Git\\cmd;C:\\Program Files\\Git\\bin;C:\\laragon\\bin\\php\\php-8.3.16-Win32-vs16-x64;C:\\laragon\\bin\\composer;%PATH%"
+  },
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+  "editor.tabSize": 2,
+  "editor.wordWrap": "on"
+}
