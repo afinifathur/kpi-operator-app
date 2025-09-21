@@ -1,6 +1,8 @@
 ﻿/vendor/
 /node_modules/
-public/build/
+/public/build/
+/public/hot
+/public/storage
 /.env
 /.idea/
 /.vscode/*
