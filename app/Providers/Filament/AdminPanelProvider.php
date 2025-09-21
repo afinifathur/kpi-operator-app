@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
             // Theme (paksa light)
             ->defaultThemeMode(ThemeMode::Light)
             ->darkMode(false)
-            ->viteTheme('resources/css/filament/admin/theme.css')
+            //->viteTheme('resources/css/filament/admin/theme.css')
 
             // Warna primer
             ->colors([
