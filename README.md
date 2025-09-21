@@ -1,2 +1,10 @@
-﻿# kpi-operator-app
-Laravel app (Laragon) untuk pelacakan KPI operator. Workflow: VS Code + GitHub.
+﻿### Quick start (lokal)
+
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+
+```
