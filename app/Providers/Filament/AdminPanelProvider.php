@@ -12,6 +12,7 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem; // <-- tambahkan ini
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -32,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
 
             // Brand
             ->brandName('PERONI KARYA SENTRA')
-            ->brandLogo(asset('images/logo.png')) // gunakan png yang sudah tampil
+            ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('2rem')
 
             // Theme (paksa light)
@@ -56,14 +57,31 @@ class AdminPanelProvider extends PanelProvider
                 ],
             ])
 
-            // Urutan grup menu (urutan array = urutan tampil)
+            // Urutan grup menu (QC tepat DI BAWAH HR)
             ->navigationGroups([
                 NavigationGroup::make()->label('Dashboard')->collapsed(false),
                 NavigationGroup::make()->label('Laporan'),
                 NavigationGroup::make()->label('HR'),
+                NavigationGroup::make()->label('QC'), // <-- konsisten: judul grup "QC"
                 NavigationGroup::make()->label('Master Data'),
                 NavigationGroup::make()->label('Transaksi'),
                 NavigationGroup::make()->label('Konfigurasi'),
+            ])
+
+            // Item navigasi kustom
+            ->navigationItems([
+                NavigationItem::make('QC database')
+                    ->group('QC') // <-- muncul di grup QC
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->url(fn() => route('qc.inspections.index')) // /admin/qc
+                    ->isActiveWhen(fn() => request()->routeIs('qc.*'))
+                    ->sort(700),
+                NavigationItem::make('QC Import')
+                    ->group('QC')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn() => route('qc.import.create'))
+                    ->isActiveWhen(fn() => request()->routeIs('qc.import.*'))
+                    ->sort(701),
             ])
 
             // Auto-discover
