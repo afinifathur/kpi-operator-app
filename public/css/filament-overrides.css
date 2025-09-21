@@ -1,0 +1,22 @@
+*** /dev/null
+--- b/public/css/filament-overrides.css
+@@
+/* Sentuhan UI ringan, aman tanpa Vite */
+:root {
+    --fi-accent-500: #0ea5e9; /* aksen lembut */
+}
+.fi-sidebar {
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+}
+.fi-btn,
+.fi-input,
+.fi-select,
+.fi-textarea {
+    border-radius: 10px;
+}
+.table-fixed thead th {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+}

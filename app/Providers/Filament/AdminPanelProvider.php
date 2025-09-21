@@ -20,6 +20,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\Assets\Css;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -31,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
 
+   
             // Brand
             ->brandName('PERONI KARYA SENTRA')
             ->brandLogo(asset('images/logo.png'))
@@ -113,4 +116,12 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ]);
     }
+     public function boot(): void
+    {
+       // Registrasi CSS statis tanpa Vite
+        FilamentAsset::register([
+            Css::make('filament-overrides', asset('css/filament-overrides.css')),
+        ]);
+    }
+
 }
