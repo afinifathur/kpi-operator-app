@@ -16,3 +16,4 @@
 /storage/logs/*
 !/.vscode/tasks.json
 !/.vscode/tasks.json
+storage/framework/sessions/
