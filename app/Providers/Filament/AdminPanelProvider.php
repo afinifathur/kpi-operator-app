@@ -12,7 +12,7 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem; // <-- tambahkan ini
+use Filament\Navigation\NavigationItem;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -33,7 +33,6 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
 
-   
             // Brand
             ->brandName('PERONI KARYA SENTRA')
             ->brandLogo(asset('images/logo.png'))
@@ -41,8 +40,8 @@ class AdminPanelProvider extends PanelProvider
 
             // Theme (paksa light)
             ->defaultThemeMode(ThemeMode::Light)
-            ->darkMode(false)
-            //->viteTheme('resources/css/filament/admin/theme.css')
+            ->darkMode(true)
+            ->viteTheme('resources/css/filament/admin/theme.css')
 
             // Warna primer
             ->colors([
@@ -65,7 +64,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label('Dashboard')->collapsed(false),
                 NavigationGroup::make()->label('Laporan'),
                 NavigationGroup::make()->label('HR'),
-                NavigationGroup::make()->label('QC'), // <-- konsisten: judul grup "QC"
+                NavigationGroup::make()->label('QC'),
                 NavigationGroup::make()->label('Master Data'),
                 NavigationGroup::make()->label('Transaksi'),
                 NavigationGroup::make()->label('Konfigurasi'),
@@ -74,16 +73,17 @@ class AdminPanelProvider extends PanelProvider
             // Item navigasi kustom
             ->navigationItems([
                 NavigationItem::make('QC database')
-                    ->group('QC') // <-- muncul di grup QC
+                    ->group('QC')
                     ->icon('heroicon-o-clipboard-document-check')
-                    ->url(fn() => route('qc.inspections.index')) // /admin/qc
-                    ->isActiveWhen(fn() => request()->routeIs('qc.*'))
+                    ->url(fn() => route('admin.qc.index'))                  // bagian ini yang diubah
+                    ->isActiveWhen(fn() => request()->routeIs('admin.qc.*')) // bagian ini yang diubah
                     ->sort(700),
+
                 NavigationItem::make('QC Import')
                     ->group('QC')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn() => route('qc.import.create'))
-                    ->isActiveWhen(fn() => request()->routeIs('qc.import.*'))
+                    ->url(fn() => route('admin.qc.import'))                  // bagian ini yang diubah (tidak pakai qc.import.create)
+                    ->isActiveWhen(fn() => request()->routeIs('admin.qc.import*')) // bagian ini yang diubah
                     ->sort(701),
             ])
 
@@ -116,14 +116,6 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ]);
     }
-     public function boot(): void
-    {
-       // Registrasi CSS statis tanpa Vite
-        FilamentAsset::register([
-            Css::make('filament-overrides', asset('css/filament-overrides.css')),
-        ]);
-    }
 
-
-
+    public function boot(): void {}
 }

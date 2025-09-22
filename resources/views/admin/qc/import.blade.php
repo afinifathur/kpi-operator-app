@@ -1,46 +1,49 @@
 <x-app-layout>
-  <div style="padding:16px;">
-    <h1>Impor QC (Paste)</h1>
-
-    @if(session('status'))
-      <div style="border:1px solid #ddd;padding:10px;background:#fafafa;margin-bottom:12px;">
-        {{ session('status') }}
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>Impor QC (Paste)</h1>
+        <a href="{{ route('admin.qc.index') }}" class="btn btn-ghost">Kembali</a>
       </div>
-    @endif
 
-    @if(session('import_errors'))
-      <div style="border:1px solid #f5c2c7;background:#f8d7da;color:#842029;padding:10px;margin-bottom:12px;">
-        <strong>Kesalahan:</strong>
-        <ul>
-          @foreach(session('import_errors') as $e) <li>{{ $e }}</li> @endforeach
-        </ul>
-      </div>
-    @endif
+      @if(session('status'))
+        <div class="alert info">{{ session('status') }}</div>
+      @endif
 
-    <form method="post" action="{{ route('admin.qc.import.store') }}">
-      @csrf
-      <div style="margin-bottom:8px;">
-        <label>Delimiter:
-          <select name="delimiter">
+      @if(session('import_errors'))
+        <div class="alert error">
+          <strong>Kesalahan:</strong>
+          <ul>
+            @foreach(session('import_errors') as $e) <li>{{ $e }}</li> @endforeach
+          </ul>
+        </div>
+      @endif
+
+      <form method="post" action="{{ route('admin.qc.import.store') }}">
+        @csrf
+
+        <div class="field">
+          <label for="delimiter">Delimiter</label>
+          <select id="delimiter" name="delimiter" class="select" style="max-width:220px">
             <option value="comma">Comma (,)</option>
             <option value="tab">Tab (\t)</option>
             <option value="semicolon">Semicolon (;)</option>
             <option value="space">Space</option>
           </select>
-        </label>
-      </div>
+        </div>
 
-      <div>
-        <label>Payload (6 kolom: customer, heat_number, item, hasil, operator, department)</label>
-        <textarea name="payload" style="width:100%;height:220px;"
-          placeholder="PT Sukses Makmur, HN-240901-001, Flange 2&quot; 150#, OK, Budi, QC&#10;CV Baja Prima, HN-240901-002, Elbow 3&quot; SCH40, NG, Sari, QC"></textarea>
-        @error('payload')<div style="color:#b00020">{{ $message }}</div>@enderror
-      </div>
+        <div class="field">
+          <label for="payload">Payload (6 kolom per baris: customer, heat_number, item, hasil, operator, department)</label>
+          <textarea id="payload" name="payload" class="textarea"
+            placeholder="PT Sukses Makmur, HN-240901-001, Flange 2&quot; 150#, OK, Budi, QC&#10;CV Baja Prima, HN-240901-002, Elbow 3&quot; SCH40, NG, Sari, QC"></textarea>
+          @error('payload') <div class="alert error mt-1">{{ $message }}</div> @enderror
+        </div>
 
-      <div style="margin-top:8px;">
-        <button type="submit">Impor</button>
-        <a href="{{ route('admin.qc.index') }}" style="margin-left:8px;">Kembali</a>
-      </div>
-    </form>
+        <div class="mt-2">
+          <button type="submit" class="btn btn-primary">Impor sekarang</button>
+          <a class="btn btn-ghost ml-1" href="{{ route('admin.qc.index') }}">Lihat data</a>
+        </div>
+      </form>
+    </div>
   </div>
 </x-app-layout>

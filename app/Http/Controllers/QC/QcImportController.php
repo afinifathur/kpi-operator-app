@@ -3,75 +3,65 @@
 namespace App\Http\Controllers\QC;
 
 use App\Http\Controllers\Controller;
-use App\Models\QcDepartment;
-use App\Models\QcInspection;
-use App\Models\QcOperator;
+use App\Models\QcRecord;
 use Illuminate\Http\Request;
 
 class QcImportController extends Controller
 {
     public function create()
     {
-        return view('qc.import', [
-            'operators' => QcOperator::orderBy('name')->get(),
-            'departments' => QcDepartment::orderBy('name')->get(),
-        ]);
+        return view('admin.qc.import'); // <-- penting
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'paste' => 'required|string',
-            'qc_operator_id' => 'nullable|exists:qc_operators,id',
-            'qc_department_id' => 'nullable|exists:qc_departments,id',
+        $request->validate([
+            'payload'   => ['required', 'string', 'min:3'],
+            'delimiter' => ['nullable', 'in:tab,comma,semicolon,space'],
         ]);
 
-        $opId = $validated['qc_operator_id'] ?? null;
-        $deptId = $validated['qc_department_id'] ?? null;
+        $text = trim((string)$request->input('payload'));
+        $delimiter = match ($request->input('delimiter')) {
+            'tab' => "\t",
+            'semicolon' => ';',
+            'space' => ' ',
+            default => ',',
+        };
 
-        $lines = preg_split("/\r\n|\n|\r/", trim($validated['paste']));
+        $lines = preg_split("/\r\n|\n|\r/", $text);
         $created = 0;
-        $updated = 0;
-        $skipped = 0;
+        $errors = [];
 
-        foreach ($lines as $line) {
-            if (trim($line) === '') {
+        foreach ($lines as $i => $line) {
+            if ($line === '') continue;
+
+            $parts = array_values(array_filter(array_map('trim', explode($delimiter, $line)), fn($v) => $v !== ''));
+            if (count($parts) < 6) {
+                $errors[] = "Baris " . ($i + 1) . " kurang kolom (minimal 6).";
                 continue;
             }
 
-            // dukung tab atau koma
-            $parts = str_getcsv($line, "\t");
-            if (count($parts) < 4) { // coba koma
-                $parts = str_getcsv($line, ',');
-            }
-            if (count($parts) < 4) {
-                $skipped++;
+            [$customer, $heat, $item, $hasil, $operator, $dept] = array_pad($parts, 6, null);
+
+            if (! $heat) {
+                $errors[] = "Baris " . ($i + 1) . " heat number kosong/tidak valid.";
                 continue;
             }
 
-            [$customer, $heat, $item, $result] = array_map('trim', array_pad($parts, 4, null));
+            QcRecord::create([
+                'customer'   => $customer,
+                'heat_number' => $heat,
+                'item'       => $item,
+                'hasil'      => strtoupper((string)$hasil),
+                'operator'   => $operator,
+                'department' => $dept,
+                'notes'      => null,
+            ]);
 
-            // upsert berdasarkan (heat_number, item)
-            $values = [
-                'customer' => $customer,
-                'result' => $result,
-                'qc_operator_id' => $opId,
-                'qc_department_id' => $deptId,
-            ];
-
-            $existing = QcInspection::where('heat_number', $heat)->where('item', $item)->first();
-            if ($existing) {
-                $existing->update($values);
-                $updated++;
-            } else {
-                QcInspection::create(array_merge($values, [
-                    'heat_number' => $heat,
-                    'item' => $item,
-                ]));
-                $created++;
-            }
+            $created++;
         }
 
-        return back()->with('status', "Import selesai: new=$created, updated=$updated, skipped=$skipped");
+        return back()->with('status', "Impor selesai: {$created} baris berhasil, " . count($errors) . " gagal.")
+            ->with('import_errors', $errors);
     }
 }
