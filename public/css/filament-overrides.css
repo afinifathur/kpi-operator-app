@@ -1,7 +1,3 @@
-*** /dev/null
---- b/public/css/filament-overrides.css
-@@
-/* Sentuhan UI ringan, aman tanpa Vite */
 :root {
     --fi-accent-500: #0ea5e9; /* aksen lembut */
 }
