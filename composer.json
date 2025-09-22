@@ -42,6 +42,14 @@
             "@php artisan package:discover --ansi",
             "@php artisan filament:upgrade"
         ],
+
+        "post-install-cmd": [
+        "@php -r \"is_dir('storage/framework/sessions') || mkdir('storage/framework/sessions', 0777, true);\"",
+         "@php -r \"is_dir('storage/framework/cache/data') || mkdir('storage/framework/cache/data', 0777, true);\"",
+        "@php -r \"is_dir('storage/framework/views') || mkdir('storage/framework/views', 0777, true);\"",
+        "@php -r \"is_dir('storage/logs') || mkdir('storage/logs', 0777, true);\""
+        ],
+        
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
