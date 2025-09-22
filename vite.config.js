@@ -11,7 +11,7 @@ export default defineConfig({
         'resources/filament/app.css',
         'resources/filament/app.js',
         'resources/js/chart-dashboard.js', // ⬅️ tambah ini
-		'resources/css/filament/admin/theme.css', // ← penting
+		    'resources/css/filament/admin/theme.pcss', // ← penting
       ],
       refresh: true,
     }),
