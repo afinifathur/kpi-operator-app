@@ -30,6 +30,9 @@ Route::prefix('admin')
 
         Route::get('/admin/reports/operator-scorecard.xlsx', [ReportExportController::class, 'operatorScorecardXlsx'])
             ->name('reports.operator-scorecard.xlsx');
+            Route::get('/qc', [\App\Http\Controllers\Admin\QcController::class, 'index'])->name('admin.qc.index');
+    Route::get('/qc/import', [\App\Http\Controllers\Admin\QcController::class, 'importForm'])->name('admin.qc.import');
+    Route::post('/qc/import', [\App\Http\Controllers\Admin\QcController::class, 'importStore'])->name('admin.qc.import.store');
     });
 
 Route::prefix('admin/qc')->name('qc.')->group(function () {
