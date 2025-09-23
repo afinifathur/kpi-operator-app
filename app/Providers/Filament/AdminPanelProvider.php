@@ -39,7 +39,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2rem')
 
             // Theme (paksa light)
-            ->defaultThemeMode(ThemeMode::Light)
+            ->defaultThemeMode(ThemeMode::System)
             ->darkMode(true)
             ->viteTheme('resources/css/filament/admin/theme.css')
 
