@@ -1,10 +1,11 @@
 module.exports = {
-  content: [
-    "./resources/**/*.blade.php",
-    "./resources/**/*.js",
-    "./resources/**/*.vue",
-    "./vendor/filament/**/*.blade.php",
-  ],
-  theme: { extend: {} },
-  plugins: [],
-}
+    darkMode: "class", // bagian ini yang ditambah
+    content: [
+        "./resources/**/*.blade.php",
+        "./resources/**/*.js",
+        "./resources/**/*.vue",
+        "./vendor/filament/**/*.blade.php",
+    ],
+    theme: { extend: {} },
+    plugins: [],
+};
