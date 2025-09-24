@@ -1,11 +1,9 @@
 <?php
-// bagian ini yang ditambah
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class QcRecord extends Model
 {
@@ -15,26 +13,17 @@ class QcRecord extends Model
         'customer',
         'heat_number',
         'item',
-        'hasil',
+        'qty',          // bagian ini yang ditambah
+        'defects',      // bagian ini yang ditambah
+        'hasil',        // biarkan untuk kompatibel (tidak dipakai untuk OK/NG lagi)
         'operator',
+        'qc_operator_id', // bagian ini yang ditambah
         'department',
         'notes',
     ];
 
-    public function scopeSearch(Builder $q, ?string $term): Builder
+    public function qcOperator()
     {
-        if (! $term) {
-            return $q;
-        }
-        $like = '%'.$term.'%';
-
-        return $q->where(function ($w) use ($like) {
-            $w->where('heat_number', 'like', $like)
-              ->orWhere('customer', 'like', $like)
-              ->orWhere('item', 'like', $like)
-              ->orWhere('operator', 'like', $like)
-              ->orWhere('department', 'like', $like)
-              ->orWhere('hasil', 'like', $like);
-        });
+        return $this->belongsTo(QcOperator::class, 'qc_operator_id');
     }
 }

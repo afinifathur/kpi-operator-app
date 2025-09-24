@@ -44,4 +44,17 @@ class QcInspectionController extends Controller
         // isi sesuai kebutuhanmu
         return back();
     }
+
+public function updateDefects(Request $request, \App\Models\QcRecord $record)
+{
+    $data = $request->validate([
+        'defects' => ['required','integer','min:0'],
+    ]);
+
+    $record->update(['defects' => $data['defects']]);
+
+    return back()->with('status', 'Defects diperbarui.');
+}
+
+
 }

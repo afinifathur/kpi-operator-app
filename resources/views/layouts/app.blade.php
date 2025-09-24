@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <script src="https://cdn.tailwindcss.com"></script>
-
+        @vite('resources/css/filament/admin/theme.css')  {{-- //bagian ini yang ditambah --}}
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -29,10 +29,14 @@
                 </header>
             @endisset
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+             <!-- Page Content -->
++            <main>
++                @hasSection('content')
++                    @yield('content')       {{-- layout klasik: @section('content') --}}
++                @elseif (isset($slot))
++                    {{ $slot }}             {{-- component: <x-app-layout> --}}
++                @endif
++            </main>
         </div>
     </body>
 </html>

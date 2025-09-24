@@ -147,6 +147,41 @@
     }
 }
 
+/* === Select: 1 panah saja, cross-browser (Win7 friendly) === */
+.select,
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    /* buang panah default (IE/Edge lama) */
+}
+select::-ms-expand {
+    display: none;
+}
+
+/* pastikan tidak ada panah hasil background bertumpuk */
+.select,
+select {
+    background-image: none !important;
+    padding-right: 2rem; /* ruang untuk panah */
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 14px 14px;
+
+    /* panah SVG 1x, mengikuti warna teks (currentColor) */
+    background-image: url("data:image/svg+xml;utf8,\
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'>\
+    <path d='M5.25 7.5l4.75 5 4.75-5'/>\
+  </svg>");
+}
+
+/* dark mode: kontras panah */
+.dark .select,
+.dark select {
+    color: #1b5cdf;
+}
+
 /* ==== DARK MODE VIA CLASS (html.dark) ==== */
 /* Gunakan selector yang benar & variabel yang konsisten */
 html.dark {

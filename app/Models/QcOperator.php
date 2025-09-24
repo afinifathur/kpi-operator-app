@@ -3,23 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class QcOperator extends Model
 {
-    protected $fillable = ['name', 'qc_department_id'];
+    use HasFactory;
 
-    public function department()
-    {
-        return $this->belongsTo(QcDepartment::class, 'qc_department_id');
-    }
+    protected $fillable = [
+        'name',
+        'department',
+        'active',
+    ];
 
-    public function inspections()
+    // relasi balik (opsional)
+    public function records()
     {
-        return $this->hasMany(QcInspection::class, 'qc_operator_id');
-    }
-
-    public function issues()
-    {
-        return $this->hasMany(QcIssue::class, 'qc_operator_id');
+        return $this->hasMany(QcRecord::class, 'qc_operator_id');
     }
 }
