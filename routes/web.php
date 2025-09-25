@@ -20,8 +20,7 @@ Route::get('/dashboard', fn () => view('dashboard'))
     ->name('dashboard');
 
 /**
- * PROFILE — path /admin/... TANPA prefix nama "admin."
- * Nama route tetap: profile.edit, profile.update, profile.destroy
+ * PROFILE — path /admin/... (nama route: profile.*)
  */
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -30,7 +29,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 });
 
 /**
- * ADMIN (dengan prefix nama "admin.")
+ * ADMIN (prefix nama "admin.")
  * Termasuk Jobs dan seluruh QC di bawah /admin/qc/...
  */
 Route::prefix('admin')->middleware(['auth'])->name('admin.')->group(function () {
@@ -40,71 +39,54 @@ Route::prefix('admin')->middleware(['auth'])->name('admin.')->group(function () 
 
     // QC (semua di bawah /admin/qc)
     Route::prefix('qc')->name('qc.')->group(function () {
-        // dashboard / database & import
+        // database
         Route::get('/', [QcInspectionController::class, 'index'])->name('index');
 
-        // Penting: gunakan nama "import" (bukan import.create) agar kompatibel dengan pemanggilan lama
-        Route::get('/import', [QcImportController::class, 'create'])->name('import');
+        // IMPORT — gunakan penamaan standar: import.create & import.store
+        Route::get('/import',  [QcImportController::class, 'create'])->name('import.create'); // //bagian ini yang dibetulkan
         Route::post('/import', [QcImportController::class, 'store'])->name('import.store');
 
+        // Issues/defects
         Route::post('/issues', [QcInspectionController::class, 'storeIssue'])->name('issues.store');
         Route::patch('/defects/{record}', [QcInspectionController::class, 'updateDefects'])->name('defects.update');
 
         // KPI
         Route::get('/kpi', [QcKpiController::class, 'index'])->name('kpi.index');
 
-        // master operators
+        // Master operators
         Route::prefix('operators')->name('operators.')->group(function () {
-            Route::get('/', [QcOperatorController::class, 'index'])->name('index');
+            Route::get('/',       [QcOperatorController::class, 'index'])->name('index');
             Route::get('/create', [QcOperatorController::class, 'create'])->name('create');
-            Route::post('/', [QcOperatorController::class, 'store'])->name('store');
+            Route::post('/',      [QcOperatorController::class, 'store'])->name('store');
         });
 
-        // report periode
+        // Report periode
         Route::get('/report', [QcReportController::class, 'index'])->name('report.index');
     });
 });
 
 /**
- * Export: tetap di /admin, TANPA prefix nama "admin."
+ * Export (tetap di /admin, tanpa prefix nama "admin.")
  */
 Route::prefix('admin')->middleware(['auth'])->group(function () {
-    Route::get('/hr-scorecard/export', [HrExportController::class, 'scorecard'])
-        ->name('hr.scorecard.export'); // pertahankan nama lama
-    Route::get('/reports/operator-scorecard.csv', [ReportExportController::class, 'operatorScorecardCsv'])
-        ->name('reports.operator-scorecard.csv');
-    Route::get('/reports/operator-scorecard.xlsx', [ReportExportController::class, 'operatorScorecardXlsx'])
-        ->name('reports.operator-scorecard.xlsx');
+    Route::get('/hr-scorecard/export', [HrExportController::class, 'scorecard'])->name('hr.scorecard.export');
+    Route::get('/reports/operator-scorecard.csv',  [ReportExportController::class, 'operatorScorecardCsv'])->name('reports.operator-scorecard.csv');
+    Route::get('/reports/operator-scorecard.xlsx', [ReportExportController::class, 'operatorScorecardXlsx'])->name('reports.operator-scorecard.xlsx');
 });
 
 /**
- * === LEGACY ALIASES & REDIRECTS (opsional tapi sangat membantu) ===
- * Supaya link lama & route() lama tidak error, dan pengguna yang akses /qc/... diarahkan ke /admin/qc/...
- * Semua tetap butuh auth.
+ * Legacy aliases (redirect) agar link lama tetap hidup.
  */
-
-// qc/operators (lama) -> admin.qc.operators.index
 Route::middleware('auth')->group(function () {
-    Route::get('/qc/operators', fn () => redirect()->route('admin.qc.operators.index'))
-        ->name('qc.operators.index');
-    Route::get('/qc/operators/create', fn () => redirect()->route('admin.qc.operators.create'))
-        ->name('qc.operators.create');
-    Route::post('/qc/operators', fn () => redirect()->route('admin.qc.operators.store'))
-        ->name('qc.operators.store');
+    Route::get('/qc', fn () => redirect()->route('admin.qc.index'))->name('qc.index');
+    Route::get('/qc/import', fn () => redirect()->route('admin.qc.import.create'))->name('qc.import');
+    Route::post('/qc/import', fn () => redirect()->route('admin.qc.import.store'))->name('qc.import.store');
 
-    // qc/report (lama) -> admin.qc.report.index
-    Route::get('/qc/report', fn () => redirect()->route('admin.qc.report.index'))
-        ->name('qc.report.index');
+    Route::get('/qc/operators',         fn () => redirect()->route('admin.qc.operators.index'))->name('qc.operators.index');
+    Route::get('/qc/operators/create',  fn () => redirect()->route('admin.qc.operators.create'))->name('qc.operators.create');
+    Route::post('/qc/operators',        fn () => redirect()->route('admin.qc.operators.store'))->name('qc.operators.store');
 
-    // qc/import (lama) -> admin.qc.import (GET) & admin.qc.import.store (POST)
-    Route::get('/qc/import', fn () => redirect()->route('admin.qc.import'))
-        ->name('qc.import');
-    Route::post('/qc/import', fn () => redirect()->route('admin.qc.import.store'))
-        ->name('qc.import.store');
-
-    // qc (lama) -> admin.qc.index
-    Route::get('/qc', fn () => redirect()->route('admin.qc.index'))
-        ->name('qc.index');
+    Route::get('/qc/report', fn () => redirect()->route('admin.qc.report.index'))->name('qc.report.index');
 });
 
 require __DIR__ . '/auth.php';

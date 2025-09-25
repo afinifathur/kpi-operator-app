@@ -11,10 +11,15 @@ class QcInspectionController extends Controller
     public function index(Request $request)
     {
         $query = QcRecord::query()
-            ->when($request->filled('hasil'), fn($q) => $q->where('hasil', strtoupper($request->string('hasil'))))
-            ->when($request->filled('department'), fn($q) => $q->where('department', $request->string('department')))
+            ->when($request->filled('hasil'), function ($q) use ($request) {
+                $hasil = strtoupper((string) $request->string('hasil'));
+                return $q->where('hasil', $hasil);
+            })
+            ->when($request->filled('department'), function ($q) use ($request) {
+                return $q->where('department', (string) $request->string('department'));
+            })
             ->when($request->filled('q'), function ($q) use ($request) {
-                $term = '%' . $request->string('q') . '%';
+                $term = '%' . (string) $request->string('q') . '%';
                 $q->where(function ($w) use ($term) {
                     $w->where('heat_number', 'like', $term)
                         ->orWhere('customer', 'like', $term)
@@ -29,11 +34,11 @@ class QcInspectionController extends Controller
         $records = $query->paginate(20)->withQueryString();
 
         return view('admin.qc.index', [
-            'records' => $records, // <-- penting
+            'records' => $records,
             'filters' => [
-                'q'          => $request->string('q'),
-                'hasil'      => $request->string('hasil'),
-                'department' => $request->string('department'),
+                'q'          => (string) $request->string('q'),
+                'hasil'      => (string) $request->string('hasil'),
+                'department' => (string) $request->string('department'),
             ],
         ]);
     }
@@ -45,16 +50,20 @@ class QcInspectionController extends Controller
         return back();
     }
 
-public function updateDefects(Request $request, \App\Models\QcRecord $record)
-{
-    $data = $request->validate([
-        'defects' => ['required','integer','min:0'],
-    ]);
+    public function updateDefects(Request $request, QcRecord $record)
+    {
+        // mode=increment → tambah defect; default: set nilai
+        $data = $request->validate([
+            'defects' => ['required', 'integer', 'min:0'],
+            'mode'    => ['nullable', 'in:increment,set'],
+        ]);
 
-    $record->update(['defects' => $data['defects']]);
+        if (($data['mode'] ?? 'set') === 'increment') {
+            $record->increment('defects', (int) $data['defects']);
+        } else {
+            $record->update(['defects' => (int) $data['defects']]);
+        }
 
-    return back()->with('status', 'Defects diperbarui.');
-}
-
-
+        return back()->with('status', 'Defects diperbarui.');
+    }
 }

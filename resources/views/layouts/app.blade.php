@@ -30,13 +30,13 @@
             @endisset
 
              <!-- Page Content -->
-+            <main>
-+                @hasSection('content')
-+                    @yield('content')       {{-- layout klasik: @section('content') --}}
-+                @elseif (isset($slot))
-+                    {{ $slot }}             {{-- component: <x-app-layout> --}}
-+                @endif
-+            </main>
+            <main>
+                @hasSection('content')
+                    @yield('content')       {{-- layout klasik: @section('content') --}}
+                @elseif (isset($slot))
+                    {{ $slot }}             {{-- component: <x-app-layout> --}}
+                @endif
+            </main>
         </div>
     </body>
 </html>

@@ -31,13 +31,13 @@
             <?php endif; ?>
 
              <!-- Page Content -->
-+            <main>
-+                <?php if (! empty(trim($__env->yieldContent('content')))): ?>
-+                    <?php echo $__env->yieldContent('content'); ?>       
-+                <?php elseif(isset($slot)): ?>
-+                    <?php echo e($slot); ?>             
-+                <?php endif; ?>
-+            </main>
+            <main>
+                <?php if (! empty(trim($__env->yieldContent('content')))): ?>
+                    <?php echo $__env->yieldContent('content'); ?>       
+                <?php elseif(isset($slot)): ?>
+                    <?php echo e($slot); ?>             
+                <?php endif; ?>
+            </main>
         </div>
     </body>
 </html>
