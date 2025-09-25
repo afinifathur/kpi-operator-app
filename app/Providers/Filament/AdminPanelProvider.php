@@ -20,8 +20,6 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Support\Facades\FilamentAsset;
-use Filament\Support\Assets\Css;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -38,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('2rem')
 
-            // Theme (paksa light)
+            // Theme (ikut System; dark mode diaktifkan)
             ->defaultThemeMode(ThemeMode::System)
             ->darkMode(true)
             ->viteTheme('resources/css/filament/admin/theme.css')
@@ -75,16 +73,30 @@ class AdminPanelProvider extends PanelProvider
                 NavigationItem::make('QC database')
                     ->group('QC')
                     ->icon('heroicon-o-clipboard-document-check')
-                    ->url(fn() => route('admin.qc.index'))                  // bagian ini yang diubah
-                    ->isActiveWhen(fn() => request()->routeIs('admin.qc.*')) // bagian ini yang diubah
+                    ->url(fn () => route('admin.qc.index')) // /admin/qc
+                    ->isActiveWhen(fn () => request()->routeIs('admin.qc.index'))
                     ->sort(700),
 
                 NavigationItem::make('QC Import')
                     ->group('QC')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn() => route('admin.qc.import'))                  // bagian ini yang diubah (tidak pakai qc.import.create)
-                    ->isActiveWhen(fn() => request()->routeIs('admin.qc.import*')) // bagian ini yang diubah
+                    ->url(fn () => route('admin.qc.import.create'))                 // <- perbaikan
+                    ->isActiveWhen(fn () => request()->routeIs('admin.qc.import*')) // <- aktif utk GET & POST
                     ->sort(701),
+
+                NavigationItem::make('QC Operators')
+                    ->group('QC')
+                    ->icon('heroicon-o-users')
+                    ->url(fn () => route('admin.qc.operators.index'))
+                    ->isActiveWhen(fn () => request()->routeIs('admin.qc.operators.*'))
+                    ->sort(702),
+
+                NavigationItem::make('QC KPI / Report')
+                    ->group('QC')
+                    ->icon('heroicon-o-chart-bar')
+                    ->url(fn () => route('admin.qc.report.index'))
+                    ->isActiveWhen(fn () => request()->routeIs('admin.qc.report*'))
+                    ->sort(703),
             ])
 
             // Auto-discover
@@ -119,3 +131,4 @@ class AdminPanelProvider extends PanelProvider
 
     public function boot(): void {}
 }
+
