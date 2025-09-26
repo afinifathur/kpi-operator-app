@@ -5,143 +5,151 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Qc;
 
 use App\Http\Controllers\Controller;
-use App\Models\QcRecord;
+use App\Models\QcDepartment;
+use App\Models\QcInspection;
+use App\Models\QcOperator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class QcImportController extends Controller
 {
     /**
-     * Halaman form import (toleran terhadap variasi nama view lama).
+     * Halaman form import (toleran path view lama/baru) + supply data dropdown.
      */
     public function create()
     {
-        // Kandidat nama view yang didukung (baru → lama)
+        $operators   = QcOperator::orderBy('name')->get();
+        $departments = QcDepartment::orderBy('name')->get();
+
         $candidates = [
-            'admin.qc.import.create', // target utama (resources/views/admin/qc/import/create.blade.php)
-            'admin.qc.import',        // beberapa versi lama (resources/views/admin/qc/import.blade.php)
-            'qc.import.create',       // alternatif lama
-            'qc.import',              // alternatif lama
+            'admin.qc.import.create', // resources/views/admin/qc/import/create.blade.php
+            'admin.qc.import',        // resources/views/admin/qc/import.blade.php
+            
+            'qc.import',              // resources/views/qc/import.blade.php   ← contoh yang kamu kirim
         ];
 
-        return view()->first($candidates, [
-            // placeholder data jika dibutuhkan oleh view
-        ]);
+        return view()->first($candidates, compact('operators', 'departments'));
     }
 
     /**
-     * Simpan hasil import (paste teks kolom).
+     * Import "gaya lama":
+     *   - Per baris: customer | heat_number | item | result
+     *   - Operator & Departemen diambil dari dropdown (ID), tetap aman jika form kirim nama field berbeda.
+     *   - Upsert berdasarkan (heat_number, item).
+     *   - Parser: coba TAB → koma → semikolon → fallback whitespace.
      *
-     * Aturan data:
-     * - Minimal 4 kolom per baris: customer | heat_number | item | qty
-     * - Kolom ke-5 & 6 opsional: operator | department
-     * - Jika kolom 5/6 kosong, fallback ke input dropdown form (operator/department)
-     * - defects default 0 (bisa diisi dari form kalau disediakan)
+     * Catatan: kalau kolom 4 kamu isi angka (qty), tetap akan disimpan di 'result' (string)
+     * persis seperti modul lama. (KPI/qty pakai modul QcRecord nanti terpisah.)
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'payload'    => ['required', 'string'],
-            'delimiter'  => ['nullable', 'in:auto,tab,comma,semicolon,space'],
-            'operator'   => ['nullable', 'string', 'max:100'],
-            'department' => ['nullable', 'string', 'max:100'],
-            'defects'    => ['nullable', 'integer', 'min:0'],
-        ]);
+        // ====== Compatibility: terima berbagai nama field lama/baru ======
+        // text area
+        $paste = $request->input('paste')
+            ?? $request->input('payload')
+            ?? $request->input('data')
+            ?? $request->input('text');
 
-        // Delimiter handling
-        $delimiter = $this->resolveDelimiter($data['delimiter'] ?? 'auto', $data['payload']);
+        if (!is_string($paste) || trim($paste) === '') {
+            return back()->withErrors(['paste' => 'Tidak ada data untuk diimport.'])->withInput();
+        }
 
-        // Normalisasi baris
-        $lines = preg_split("/\r\n|\n|\r/", trim((string) $data['payload']));
-        $rows  = array_values(array_filter($lines, static fn($l) => trim((string) $l) !== ''));
+        // operator & departemen (utama: id; fallback: nama → id)
+        $qcOperatorId = $request->input('qc_operator_id');
+        $qcDeptId     = $request->input('qc_department_id');
 
-        $fallbackOperator   = $data['operator']   ?? null;
-        $fallbackDepartment = $data['department'] ?? null;
-        $defaultDefects     = $data['defects']    ?? 0;
+        // fallback nama (kalau view kirim 'operator' / 'department' sebagai teks)
+        $opName   = $request->input('operator') ?? $request->input('qc_operator_name');
+        $deptName = $request->input('department') ?? $request->input('department_name');
 
-        $inserted = 0;
+        if (!$qcOperatorId && is_string($opName) && trim($opName) !== '') {
+            $qcOperatorId = optional(QcOperator::firstOrCreate(['name' => trim($opName)]))->id;
+        }
+        if (!$qcDeptId && is_string($deptName) && trim($deptName) !== '') {
+            $qcDeptId = optional(QcDepartment::firstOrCreate(['name' => trim($deptName)]))->id;
+        }
+
+        // delimiter (terima 'delimiter' atau typo 'delimeter')
+        $delimiterChoice = $request->input('delimiter') ?? $request->input('delimeter') ?? 'auto';
+
+        // ====== Normalisasi & parsing ======
+        $paste = trim(str_replace("\r\n", "\n", $paste));
+        $lines = array_values(array_filter(explode("\n", $paste), static fn($l) => trim((string)$l) !== ''));
+
+        $created = 0; $updated = 0; $skipped = 0;
 
         DB::transaction(function () use (
-            $rows,
-            $delimiter,
-            $fallbackOperator,
-            $fallbackDepartment,
-            $defaultDefects,
-            &$inserted
+            $lines, $delimiterChoice, $qcOperatorId, $qcDeptId, &$created, &$updated, &$skipped
         ): void {
-            foreach ($rows as $line) {
-                $cols = array_values(array_map('trim', explode($delimiter, (string) $line)));
+            foreach ($lines as $line) {
+                $parts = $this->splitRow($line, $delimiterChoice);
 
-                // Minimal 4 kolom valid
-                if (count($cols) < 4) {
+                if (count($parts) < 4) {
+                    $skipped++;
                     continue;
                 }
 
-                $customer   = $cols[0];
-                $heatNumber = $cols[1];
-                $item       = $cols[2];
+                [$customer, $heat, $item, $result] = array_map('trim', array_slice($parts, 0, 4));
 
-                // Qty numeric
-                $qtyRaw = $cols[3];
-                if (!is_numeric($qtyRaw)) {
+                if ($heat === '' || $item === '') {
+                    $skipped++;
                     continue;
                 }
-                $qty = (int) $qtyRaw;
 
-                // Opsional kolom 5-6 (fallback ke input form)
-                $operator   = $cols[4] ?? $fallbackOperator;
-                $department = $cols[5] ?? $fallbackDepartment;
+                // upsert by (heat_number, item)
+                $values = [
+                    'customer'         => $customer ?: null,
+                    'result'           => $result ?: null,
+                    'qc_operator_id'   => $qcOperatorId ?: null,
+                    'qc_department_id' => $qcDeptId ?: null,
+                ];
 
-                QcRecord::create([
-                    'customer'       => $customer,
-                    'heat_number'    => $heatNumber,
-                    'item'           => $item,
-                    'qty'            => $qty,
-                    'defects'        => $defaultDefects,
-                    'operator'       => $operator,
-                    'qc_operator_id' => null,
-                    'department'     => $department,
-                    'notes'          => null,
-                ]);
+                // Pakai updateOrCreate agar aman walau unique index tidak ada.
+                $row = QcInspection::updateOrCreate(
+                    ['heat_number' => $heat, 'item' => $item],
+                    $values
+                );
 
-                $inserted++;
+                $row->wasRecentlyCreated ? $created++ : $updated++;
             }
         });
 
-        return back()->with('status', "Import berhasil: {$inserted} baris dimasukkan ke database QC.");
+        return back()->with('status', "Import selesai: new={$created}, updated={$updated}, skipped={$skipped}");
     }
 
-    /**
-     * Tentukan delimiter dari pilihan user atau deteksi otomatis.
-     */
-    private function resolveDelimiter(string $choice, string $payload): string
+    private function splitRow(string $line, string $choice): array
     {
+        $line = trim($line);
         $choice = strtolower($choice);
 
-        if ($choice === 'tab')        return "\t";
-        if ($choice === 'comma')      return ',';
-        if ($choice === 'semicolon')  return ';';
-        if ($choice === 'space')      return ' ';
+        $tryDelims = [];
+        if (in_array($choice, ['tab','comma','semicolon','space','|',';'], true)) {
+            $tryDelims[] = match ($choice) {
+                'tab'       => "\t",
+                'comma'     => ',',
+                'semicolon' => ';',
+                'space'     => ' ',
+                '|'         => '|',
+                ';'         => ';',
+                default     => "\t",
+            };
+        } else {
+            // auto: prioritas tab → koma → semikolon → pipe → spasi ganda → spasi tunggal
+            $tryDelims = ["\t", ",", ";", "|", '  ', ' '];
+        }
 
-        // Auto-detect
-        $candidates = ["\t", ',', ';', '|'];
-
-        $best = "\t";
-        $bestCount = -1;
-
-        foreach ($candidates as $d) {
-            $count = substr_count($payload, $d);
-            if ($count > $bestCount) {
-                $best = $d;
-                $bestCount = $count;
+        foreach ($tryDelims as $d) {
+            if ($d === '  ') {
+                $p = preg_split('/\s{2,}/', $line) ?: [];
+            } else {
+                // str_getcsv supaya aman jika ada tanda kutip
+                $p = str_getcsv($line, $d);
             }
+            $p = array_map('trim', $p);
+            if (count($p) >= 4) return $p;
         }
 
-        // Fallback whitespace
-        if ($bestCount <= 0) {
-            return preg_match('/\s{2,}/', $payload) ? '  ' : ' ';
-        }
-
-        return $best;
+        // fallback terakhir: pisah whitespace
+        return array_values(array_filter(preg_split('/\s+/', $line) ?: [], fn($v) => $v !== ''));
     }
 }

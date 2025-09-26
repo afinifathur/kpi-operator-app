@@ -1,69 +1,64 @@
 <?php
 
-namespace App\Http\Controllers\QC;
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Qc;
 
 use App\Http\Controllers\Controller;
-use App\Models\QcRecord;
+use App\Models\QcDepartment;
+use App\Models\QcInspection;
+use App\Models\QcIssue;
 use Illuminate\Http\Request;
 
 class QcInspectionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = QcRecord::query()
-            ->when($request->filled('hasil'), function ($q) use ($request) {
-                $hasil = strtoupper((string) $request->string('hasil'));
-                return $q->where('hasil', $hasil);
-            })
-            ->when($request->filled('department'), function ($q) use ($request) {
-                return $q->where('department', (string) $request->string('department'));
-            })
-            ->when($request->filled('q'), function ($q) use ($request) {
-                $term = '%' . (string) $request->string('q') . '%';
-                $q->where(function ($w) use ($term) {
-                    $w->where('heat_number', 'like', $term)
-                        ->orWhere('customer', 'like', $term)
-                        ->orWhere('item', 'like', $term)
-                        ->orWhere('operator', 'like', $term)
-                        ->orWhere('department', 'like', $term)
-                        ->orWhere('hasil', 'like', $term);
-                });
-            })
-            ->latest();
+        $q      = trim((string) $request->query('q', ''));
+        $deptId = $request->query('department_id');
 
-        $records = $query->paginate(20)->withQueryString();
+        $inspections = QcInspection::with(['operator','department'])
+            ->when($q !== '', fn($qq) => $qq->where('heat_number', 'like', "%{$q}%"))
+            ->when(!empty($deptId), fn($qq) => $qq->where('qc_department_id', (int)$deptId))
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('admin.qc.index', [
-            'records' => $records,
-            'filters' => [
-                'q'          => (string) $request->string('q'),
-                'hasil'      => (string) $request->string('hasil'),
-                'department' => (string) $request->string('department'),
-            ],
+        $departments = QcDepartment::orderBy('name')->get();
+
+        // Prioritaskan view lama agar tampilan konsisten
+        $candidates = [
+            'qc.index',             // ⬅️ gaya lama (tanpa forced dark)
+            'admin.qc.index',
+        ];
+
+        return view()->first($candidates, [
+            'inspections'   => $inspections,
+            'records'       => $inspections, // alias jika view lama pakai $records
+            'departments'   => $departments,
+            'q'             => $q,
+            'department_id' => $deptId,
         ]);
     }
 
-    // (opsional) jika ada simpan issue
     public function storeIssue(Request $request)
     {
-        // isi sesuai kebutuhanmu
-        return back();
-    }
-
-    public function updateDefects(Request $request, QcRecord $record)
-    {
-        // mode=increment → tambah defect; default: set nilai
         $data = $request->validate([
-            'defects' => ['required', 'integer', 'min:0'],
-            'mode'    => ['nullable', 'in:increment,set'],
+            'qc_inspection_id' => ['required','exists:qc_inspections,id'],
+            'issue_count'      => ['required','integer','min:1'],
+            'notes'            => ['nullable','string'],
         ]);
 
-        if (($data['mode'] ?? 'set') === 'increment') {
-            $record->increment('defects', (int) $data['defects']);
-        } else {
-            $record->update(['defects' => (int) $data['defects']]);
-        }
+        $inspection = QcInspection::findOrFail($data['qc_inspection_id']);
 
-        return back()->with('status', 'Defects diperbarui.');
+        QcIssue::create([
+            'qc_inspection_id' => $inspection->id,
+            'qc_operator_id'   => $inspection->qc_operator_id,
+            'qc_department_id' => $inspection->qc_department_id,
+            'issue_count'      => (int)$data['issue_count'],
+            'notes'            => $data['notes'] ?? null,
+        ]);
+
+        return back()->with('status', 'Kesalahan QC dicatat.');
     }
 }
