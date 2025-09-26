@@ -1,133 +1,147 @@
 <?php
 
-namespace App\Http\Controllers\QC;
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Qc;
 
 use App\Http\Controllers\Controller;
-use App\Models\QcOperator;
 use App\Models\QcRecord;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class QcImportController extends Controller
 {
+    /**
+     * Halaman form import (toleran terhadap variasi nama view lama).
+     */
     public function create()
     {
-        // Kirim daftar operator aktif & daftar departemen untuk dropdown
-        $operators = QcOperator::query()
-            ->where('active', true)
-            ->orderBy('department')
-            ->orderBy('name')
-            ->get(['id', 'name', 'department']);
+        // Kandidat nama view yang didukung (baru → lama)
+        $candidates = [
+            'admin.qc.import.create', // target utama (resources/views/admin/qc/import/create.blade.php)
+            'admin.qc.import',        // beberapa versi lama (resources/views/admin/qc/import.blade.php)
+            'qc.import.create',       // alternatif lama
+            'qc.import',              // alternatif lama
+        ];
 
-        $departments = QcOperator::query()
-            ->select('department')
-            ->whereNotNull('department')
-            ->distinct()
-            ->orderBy('department')
-            ->pluck('department')
-            ->all();
-
-        return view('admin.qc.import', compact('operators', 'departments'));
+        return view()->first($candidates, [
+            // placeholder data jika dibutuhkan oleh view
+        ]);
     }
 
+    /**
+     * Simpan hasil import (paste teks kolom).
+     *
+     * Aturan data:
+     * - Minimal 4 kolom per baris: customer | heat_number | item | qty
+     * - Kolom ke-5 & 6 opsional: operator | department
+     * - Jika kolom 5/6 kosong, fallback ke input dropdown form (operator/department)
+     * - defects default 0 (bisa diisi dari form kalau disediakan)
+     */
     public function store(Request $request)
     {
-        // Validasi form versi baru: paste minimal 3 char, dropdown operator/dept opsional
-        $request->validate([
-            'paste'            => ['required', 'string', 'min:3'],
-            'qc_operator_id'   => ['nullable', 'integer', 'exists:qc_operators,id'],
-            'qc_department_id' => ['nullable'], // kompatibilitas lama (diabaikan bila bukan ID)
-            'delimiter'        => ['nullable', 'in:tab,comma,semicolon,space'],
+        $data = $request->validate([
+            'payload'    => ['required', 'string'],
+            'delimiter'  => ['nullable', 'in:auto,tab,comma,semicolon,space'],
+            'operator'   => ['nullable', 'string', 'max:100'],
+            'department' => ['nullable', 'string', 'max:100'],
+            'defects'    => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $text = trim((string) $request->input('paste'));
+        // Delimiter handling
+        $delimiter = $this->resolveDelimiter($data['delimiter'] ?? 'auto', $data['payload']);
 
-        $delimiter = match ($request->input('delimiter')) {
-            'tab'       => "\t",
-            'semicolon' => ';',
-            'space'     => ' ',
-            default     => ',',
-        };
+        // Normalisasi baris
+        $lines = preg_split("/\r\n|\n|\r/", trim((string) $data['payload']));
+        $rows  = array_values(array_filter($lines, static fn($l) => trim((string) $l) !== ''));
 
-        $lines   = preg_split("/\r\n|\n|\r/", $text);
-        $created = 0;
-        $errors  = [];
+        $fallbackOperator   = $data['operator']   ?? null;
+        $fallbackDepartment = $data['department'] ?? null;
+        $defaultDefects     = $data['defects']    ?? 0;
 
-        // Nilai default dari dropdown (diterapkan jika kolom operator/dept tidak ada di baris)
-        $defaultOperatorId = $request->integer('qc_operator_id') ?: null;
-        $defaultOperatorNm = null;
-        $defaultDept       = null;
+        $inserted = 0;
 
-        if ($defaultOperatorId) {
-            $op = QcOperator::find($defaultOperatorId);
-            if ($op) {
-                $defaultOperatorNm = $op->name;
-                $defaultDept       = $op->department;
+        DB::transaction(function () use (
+            $rows,
+            $delimiter,
+            $fallbackOperator,
+            $fallbackDepartment,
+            $defaultDefects,
+            &$inserted
+        ): void {
+            foreach ($rows as $line) {
+                $cols = array_values(array_map('trim', explode($delimiter, (string) $line)));
+
+                // Minimal 4 kolom valid
+                if (count($cols) < 4) {
+                    continue;
+                }
+
+                $customer   = $cols[0];
+                $heatNumber = $cols[1];
+                $item       = $cols[2];
+
+                // Qty numeric
+                $qtyRaw = $cols[3];
+                if (!is_numeric($qtyRaw)) {
+                    continue;
+                }
+                $qty = (int) $qtyRaw;
+
+                // Opsional kolom 5-6 (fallback ke input form)
+                $operator   = $cols[4] ?? $fallbackOperator;
+                $department = $cols[5] ?? $fallbackDepartment;
+
+                QcRecord::create([
+                    'customer'       => $customer,
+                    'heat_number'    => $heatNumber,
+                    'item'           => $item,
+                    'qty'            => $qty,
+                    'defects'        => $defaultDefects,
+                    'operator'       => $operator,
+                    'qc_operator_id' => null,
+                    'department'     => $department,
+                    'notes'          => null,
+                ]);
+
+                $inserted++;
+            }
+        });
+
+        return back()->with('status', "Import berhasil: {$inserted} baris dimasukkan ke database QC.");
+    }
+
+    /**
+     * Tentukan delimiter dari pilihan user atau deteksi otomatis.
+     */
+    private function resolveDelimiter(string $choice, string $payload): string
+    {
+        $choice = strtolower($choice);
+
+        if ($choice === 'tab')        return "\t";
+        if ($choice === 'comma')      return ',';
+        if ($choice === 'semicolon')  return ';';
+        if ($choice === 'space')      return ' ';
+
+        // Auto-detect
+        $candidates = ["\t", ',', ';', '|'];
+
+        $best = "\t";
+        $bestCount = -1;
+
+        foreach ($candidates as $d) {
+            $count = substr_count($payload, $d);
+            if ($count > $bestCount) {
+                $best = $d;
+                $bestCount = $count;
             }
         }
 
-        foreach ($lines as $i => $line) {
-            if ($line === '') {
-                continue;
-            }
-
-            $parts = array_map('trim', explode($delimiter, $line));
-
-            // Minimal 4 kolom: customer, heat, item, qty
-            if (count($parts) < 4) {
-                $errors[] = 'Baris ' . ($i + 1) . ' kurang kolom (min 4: customer, heat, item, qty).';
-                continue;
-            }
-
-            [$customer, $heat, $item, $qtyRaw] = array_slice($parts, 0, 4);
-            $operatorName = $parts[4] ?? $defaultOperatorNm;
-            $dept         = $parts[5] ?? ($defaultDept ?: '');
-
-            if (!$heat) {
-                $errors[] = 'Baris ' . ($i + 1) . ': heat number kosong/tidak valid.';
-                continue;
-            }
-
-            // Normalisasi qty -> integer non-negatif
-            $qty = (int) preg_replace('/[^\d]/', '', (string) $qtyRaw);
-            if ($qty < 0) {
-                $qty = 0;
-            }
-
-            // Pastikan operator master ada → ambil ID (atau buat). Jika kosong, biarkan null.
-            $qcOperatorId = null;
-            $operatorName = (string) ($operatorName ?? '');
-            $dept         = (string) $dept;
-
-            if ($operatorName !== '' && $dept !== '') {
-                $op           = QcOperator::firstOrCreate(
-                    ['name' => $operatorName, 'department' => $dept],
-                    ['active' => true]
-                );
-                $qcOperatorId = $op->id;
-            } elseif ($defaultOperatorId) {
-                $qcOperatorId = $defaultOperatorId;
-                $operatorName = $defaultOperatorNm ?? $operatorName;
-                $dept         = $defaultDept ?? $dept;
-            }
-
-            QcRecord::create([
-                'customer'       => $customer,
-                'heat_number'    => $heat,
-                'item'           => $item,
-                'qty'            => $qty,          // jumlah pcs per heat
-                'defects'        => 0,             // default 0; bisa diedit kemudian
-                'hasil'          => null,          // tidak dipakai untuk OK/NG lagi
-                'operator'       => $operatorName, // simpan juga nama string
-                'qc_operator_id' => $qcOperatorId, // relasi ke master
-                'department'     => $dept,
-                'notes'          => null,
-            ]);
-
-            $created++;
+        // Fallback whitespace
+        if ($bestCount <= 0) {
+            return preg_match('/\s{2,}/', $payload) ? '  ' : ' ';
         }
 
-        return back()
-            ->with('status', "Impor selesai: {$created} baris berhasil, " . count($errors) . ' gagal.')
-            ->with('import_errors', $errors);
+        return $best;
     }
 }

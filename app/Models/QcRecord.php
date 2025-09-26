@@ -1,29 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class QcRecord extends Model
 {
     use HasFactory;
 
+    // Pastikan ke tabel yang benar (samakan dengan migrasinya: biasanya 'qc_records')
+    protected $table = 'qc_records';
+
     protected $fillable = [
         'customer',
         'heat_number',
         'item',
-        'qty',          // bagian ini yang ditambah
-        'defects',      // bagian ini yang ditambah
-        'hasil',        // biarkan untuk kompatibel (tidak dipakai untuk OK/NG lagi)
+        'qty',
+        'defects',
         'operator',
-        'qc_operator_id', // bagian ini yang ditambah
+        'qc_operator_id',
         'department',
         'notes',
     ];
 
-    public function qcOperator()
-    {
-        return $this->belongsTo(QcOperator::class, 'qc_operator_id');
-    }
+    protected $casts = [
+        'qty' => 'integer',
+        'defects' => 'integer',
+    ];
 }
