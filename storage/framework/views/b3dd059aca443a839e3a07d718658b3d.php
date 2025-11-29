@@ -9,4 +9,4 @@
     <?php echo e($getChildComponentContainer()); ?>
 
 </div>
-<?php /**PATH C:\laragon\www\kpi-operator-app\vendor\filament\forms\resources\views/components/group.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\laragon\www\kpi-operator-app\vendor\filament\forms\resources\views/components/grid.blade.php ENDPATH**/ ?>

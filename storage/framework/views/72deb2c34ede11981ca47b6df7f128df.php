@@ -2,7 +2,7 @@
 
 $__newAttributes = [];
 $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
-    'tag' => 'td',
+    'method' => 'post',
 ]));
 
 foreach ($attributes->all() as $__key => $__value) {
@@ -19,7 +19,7 @@ unset($__propNames);
 unset($__newAttributes);
 
 foreach (array_filter(([
-    'tag' => 'td',
+    'method' => 'post',
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
     $$__key = $$__key ?? $__value;
 }
@@ -32,12 +32,16 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars, $__key, $__value); ?>
 
-<<?php echo e($tag); ?>
-
-    <?php echo e($attributes->class(['fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3'])); ?>
+<form
+    method="<?php echo e($method); ?>"
+    x-data="{ isProcessing: false }"
+    x-on:submit="if (isProcessing) $event.preventDefault()"
+    x-on:form-processing-started="isProcessing = true"
+    x-on:form-processing-finished="isProcessing = false"
+    <?php echo e($attributes->class(['fi-form grid gap-y-6'])); ?>
 
 >
     <?php echo e($slot); ?>
 
-</<?php echo e($tag); ?>>
-<?php /**PATH C:\laragon\www\kpi-operator-app\vendor\filament\tables\resources\views/components/cell.blade.php ENDPATH**/ ?>
+</form>
+<?php /**PATH C:\laragon\www\kpi-operator-app\vendor\filament\filament\resources\views/components/form/index.blade.php ENDPATH**/ ?>
